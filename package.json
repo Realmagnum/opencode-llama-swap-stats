@@ -1,0 +1,59 @@
+{
+  "name": "opencode-llama-swap-stats",
+  "version": "0.1.0",
+  "description": "Live Llama-Swap inference monitoring for OpenCode Desktop: real-time tok/s, prefill latency, prompt-cache hit rate, MTP/ngram speculative acceptance and GPU/RAM telemetry, auto-bound to the llama-swap provider from opencode.json",
+  "author": "Realmagnum",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Realmagnum/opencode-llama-swap-stats.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Realmagnum/opencode-llama-swap-stats/issues"
+  },
+  "homepage": "https://github.com/Realmagnum/opencode-llama-swap-stats#readme",
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "opencode-desktop",
+    "opencode-gui",
+    "llama-swap",
+    "solidjs",
+    "electron",
+    "monitoring",
+    "telemetry"
+  ],
+  "type": "module",
+  "files": [
+    "dist",
+    "src",
+    "gui-experimental.cjs",
+    "server.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./gui-experimental": "./dist/gui-experimental.cjs"
+  },
+  "scripts": {
+    "build": "vite build",
+    "watch": "vite build --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test \"test/**/*.test.ts\"",
+    "ci": "npm run typecheck && npm test && npm run build"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@opencode/plugin": "^2.2.0"
+  },
+  "devDependencies": {
+    "effect": "^4.0.1",
+    "solid-js": "^1.9.17",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.7",
+    "vite-plugin-solid": "^2.11.14"
+  }
+}

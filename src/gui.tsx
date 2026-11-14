@@ -505,6 +505,77 @@ export default Plugin.define({
       at: "session.header",
       render: (input) => <SessionMonitor screen={input.screen} active={() => input.active} />,
     })
+    // TitlebarItems render in the sidebar footer. The monitor belongs beside the
+    // titlebar controls instead, so its pill is moved into the sidebar header and
+    // kept next to the Session Timestamps clock; the footer is its home when the
+    // header (or that clock) is not on screen.
+    function setupHeaderIcon() {
+      if (typeof document === "undefined") return
+
+      let frame: number | undefined
+
+      const place = () => {
+        frame = undefined
+
+        const item = Array.from(document.querySelectorAll<HTMLElement>('[data-slot="titlebar-update"]')).find((element) =>
+          element.querySelector("button")?.getAttribute("aria-label")?.includes("Llama-Swap"),
+        )
+
+        if (!item) return
+
+        const button = item.querySelector("button")
+        const label = button?.getAttribute("aria-label")
+
+        if (button && label && button.title !== label) button.title = label
+
+        const clock = document.querySelector<HTMLElement>('[data-ocst-kind="toggle"]')
+        const toggle = Array.from(
+          document.querySelectorAll<HTMLElement>('button[aria-controls="vertical-tabs-sidebar"]'),
+        ).find((element) => !element.closest('[data-slot="collapsed-sidebar-toggle"]'))
+        const anchor = clock ?? toggle
+        const header = anchor?.parentElement
+        const footer = document.querySelector<HTMLElement>('[data-slot="vertical-tabs-footer"]')
+
+        const move = (parent: HTMLElement, before: HTMLElement) => {
+          if (item.parentElement === parent && item.nextElementSibling === before) return
+          parent.insertBefore(item, before)
+          item.setAttribute("data-llama-header-item", "")
+        }
+
+        if (header && anchor) {
+          move(header, anchor)
+
+          return
+        }
+
+        if (footer && item.parentElement !== footer) {
+          footer.append(item)
+          item.removeAttribute("data-llama-header-item")
+        }
+      }
+
+      const schedule = () => {
+        if (frame !== undefined) return
+        frame = requestAnimationFrame(place)
+      }
+
+      const observer = new MutationObserver(schedule)
+      observer.observe(document.body, { childList: true, subtree: true })
+      place()
+
+      onCleanup(() => {
+        observer.disconnect()
+        if (frame !== undefined) cancelAnimationFrame(frame)
+      })
+    }
+
+    ctx.add(Style, `
+      [data-llama-header-item] { align-self: auto !important; }
+      [data-llama-header-item] [data-slot="titlebar-update-label"] { display: none !important; }
+    `)
+
+    setupHeaderIcon()
+
 
     ctx.add(SettingsPage, () => ({
       id: "llama-swap-stats",

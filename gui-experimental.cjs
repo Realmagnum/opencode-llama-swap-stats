@@ -63,6 +63,7 @@ ${u}`:u};return e.createComponent(_.Show,{get when(){return t.visible},get child
       }
       [data-llama-header-item] > button {
         border-radius: 6px !important;
+        background-color: transparent !important;
         color: var(--v2-icon-icon-muted, #8a8a8a);
         transition: color 120ms ease, background-color 120ms ease;
       }
@@ -72,7 +73,7 @@ ${u}`:u};return e.createComponent(_.Show,{get when(){return t.visible},get child
       }
       [data-llama-header-item]:hover > button,
       [data-llama-header-item]:focus-within > button {
-        background: var(--v2-overlay-simple-overlay-hover, rgba(255, 255, 255, 0.06));
+        background-color: var(--v2-overlay-simple-overlay-hover, rgba(255, 255, 255, 0.06)) !important;
         color: var(--v2-text-text-base, #eeeeee);
       }
       [data-llama-header-item] [data-slot="titlebar-update-label"] { display: none !important; }

@@ -569,8 +569,30 @@ export default Plugin.define({
       })
     }
 
+    // Match the Session Timestamps clock beside it: a ghost 28px button with a
+    // 16px muted icon and the same radius and hover wash, not the filled accent
+    // pill the footer uses.
     ctx.add(Style, `
-      [data-llama-header-item] { align-self: auto !important; }
+      [data-llama-header-item] {
+        align-self: auto !important;
+        border-radius: 6px !important;
+        background: transparent !important;
+        transition: none !important;
+      }
+      [data-llama-header-item] > button {
+        border-radius: 6px !important;
+        color: var(--v2-icon-icon-muted, #8a8a8a);
+        transition: color 120ms ease, background-color 120ms ease;
+      }
+      [data-llama-header-item] > button > span svg {
+        width: 16px;
+        height: 16px;
+      }
+      [data-llama-header-item]:hover > button,
+      [data-llama-header-item]:focus-within > button {
+        background: var(--v2-overlay-simple-overlay-hover, rgba(255, 255, 255, 0.06));
+        color: var(--v2-text-text-base, #eeeeee);
+      }
       [data-llama-header-item] [data-slot="titlebar-update-label"] { display: none !important; }
     `)
 

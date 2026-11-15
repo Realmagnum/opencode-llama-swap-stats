@@ -1,6 +1,6 @@
 {
   "name": "opencode-llama-swap-stats",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Live Llama-Swap inference monitoring for OpenCode Desktop: real-time tok/s, prefill latency, prompt-cache hit rate, MTP/ngram speculative acceptance and GPU/RAM telemetry, auto-bound to the llama-swap provider from opencode.json",
   "author": "Realmagnum",
   "license": "MIT",

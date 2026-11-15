@@ -582,7 +582,7 @@ export default Plugin.define({
       [data-llama-header-item] > button {
         border-radius: 6px !important;
         background-color: transparent !important;
-        color: var(--v2-icon-icon-muted, #8a8a8a);
+        color: var(--v2-icon-icon-muted, light-dark(#5f5f5f, #8a8a8a));
         transition: color 120ms ease, background-color 120ms ease;
       }
       [data-llama-header-item] > button > span svg {
@@ -591,8 +591,8 @@ export default Plugin.define({
       }
       [data-llama-header-item]:hover > button,
       [data-llama-header-item]:focus-within > button {
-        background-color: var(--v2-overlay-simple-overlay-hover, rgba(255, 255, 255, 0.06)) !important;
-        color: var(--v2-text-text-base, #eeeeee);
+        background-color: var(--v2-overlay-simple-overlay-hover, light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.06))) !important;
+        color: var(--v2-text-text-base, light-dark(#1f1f1f, #eeeeee));
       }
       [data-llama-header-item] [data-slot="titlebar-update-label"] { display: none !important; }
     `)

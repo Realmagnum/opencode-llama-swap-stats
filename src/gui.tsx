@@ -1,8 +1,9 @@
 import { createEffect, createSignal, onCleanup } from "solid-js"
+import { createMutationGate } from "opencode-plugin-dom"
 import { Show } from "solid-js"
 import type { Accessor } from "solid-js"
-import { Plugin, SettingsPage, Slot, Store, Style, TitlebarItem } from "@opencode/plugin/gui"
-import type { Ipc, IpcClient, Persisted, SessionScreen, TitlebarItem as TitlebarItemType } from "@opencode/plugin/gui"
+import { Plugin, SettingsPage, Slot, Store, Style } from "@opencode/plugin/gui"
+import type { Ipc, IpcClient, Persisted, SessionScreen } from "@opencode/plugin/gui"
 import { Gateway, type GatewayStatus } from "./contract"
 import { HeaderWidget } from "./components/header-widget"
 import { StatsPopover } from "./components/stats-popover"
@@ -246,24 +247,6 @@ export default Plugin.define({
       </ctx.ui.Dialog>
     ))
 
-    ctx.add(TitlebarItem, (): TitlebarItemType | undefined => {
-      if (!settings().alwaysShowCurrentLoad) return undefined
-      const status = gatewayStatus()
-      const modelName = status?.modelId?.split("*")[0] ?? "llama-swap"
-      const label = status?.live.state === "generating" && status.live.tokS !== undefined
-        ? `${status.live.tokS.toFixed(1)} ${ctx.t("unit.toks")}${status.kv?.cacheRatio !== undefined ? ` · ${formatPercent(status.kv.cacheRatio)} ${ctx.t("widget.cache")}` : ""}`
-        : status?.warning && status.live.tokS === undefined
-          ? `${modelName} · ${ctx.t("widget.waiting")}`
-          : modelName
-      return {
-        id: "gateway-load",
-        icon: "waveform",
-        label,
-        title: status?.modelId ? `${status.modelId} — ${ctx.t("widget.title")}` : ctx.t("widget.title"),
-        run: openGatewayDashboard,
-      }
-    })
-
     function SessionMonitor(props: {
       screen: SessionScreen
       active: Accessor<boolean>
@@ -419,186 +402,183 @@ export default Plugin.define({
       .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"][data-value="llama-swap-stats"] [data-slot="tabs-v2-trigger"] svg {
         color: #9d7cd8 !important;
       }
-
-      /* Plugin settings gear button in Extensions -> Plugins list */
-      .plugin-settings-gear-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 24px;
-        height: 24px;
-        padding: 0;
-        border-radius: 4px;
-        background: transparent;
-        border: none;
-        color: var(--v2-text-text-muted, #8a8a8a);
-        cursor: pointer;
-        transition: color 0.15s ease, background-color 0.15s ease;
-        flex-shrink: 0;
-      }
-      .plugin-settings-gear-btn:hover {
-        color: #b392f0 !important;
-        background-color: var(--v2-background-bg-layer-02, rgba(255, 255, 255, 0.08));
-      }
-      .plugin-settings-gear-btn svg {
-        width: 16px;
-        height: 16px;
-      }
     `)
-
-    function setupExtensionSettingsGearInjection(pluginId: string, pageId: string) {
-      if (typeof document === "undefined") return
-
-      const GEAR_SVG = `<svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7.62516 4.46094L5.05225 3.86719L3.86475 5.05469L4.4585 7.6276L2.0835 9.21094V10.7943L4.4585 12.3776L3.86475 14.9505L5.05225 16.138L7.62516 15.5443L9.2085 17.9193H10.7918L12.3752 15.5443L14.9481 16.138L16.1356 14.9505L15.5418 12.3776L17.9168 10.7943V9.21094L15.5418 7.6276L16.1356 5.05469L14.9481 3.86719L12.3752 4.46094L10.7918 2.08594H9.2085L7.62516 4.46094Z" stroke="currentColor"/><path d="M12.5002 10.0026C12.5002 11.3833 11.3809 12.5026 10.0002 12.5026C8.61945 12.5026 7.50016 11.3833 7.50016 10.0026C7.50016 8.62189 8.61945 7.5026 10.0002 7.5026C11.3809 7.5026 12.5002 8.62189 12.5002 10.0026Z" stroke="currentColor"/></svg>`
-
-      function navigateToSettings() {
-        const trigger = document.querySelector(
-          `.settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"][data-value="${pageId}"] button, .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"][data-value="${pageId}"] [data-slot="tabs-v2-trigger"]`
-        ) as HTMLElement | null
-
-        if (trigger) {
-          trigger.click()
-          return
-        }
-
-        const url = new URL(window.location.href)
-        url.searchParams.set("tab", pageId)
-        window.history.pushState({}, "", url.toString())
-        window.dispatchEvent(new PopStateEvent("popstate"))
-      }
-
-      function injectGearButton() {
-        const rows = document.querySelectorAll(".settings-extension-row")
-        for (const row of Array.from(rows)) {
-          const nameEl = row.querySelector(".settings-extension-name")
-          if (!nameEl) continue
-
-          const text = nameEl.textContent?.trim() || ""
-          if (text.includes(pluginId)) {
-            const actions = row.querySelector(".settings-servers-actions")
-            if (actions && !actions.querySelector(`.${pageId}-settings-btn`)) {
-              const btn = document.createElement("button")
-              btn.type = "button"
-              btn.className = `plugin-settings-gear-btn ${pageId}-settings-btn`
-              btn.title = "Open settings"
-              btn.setAttribute("aria-label", "Open settings")
-              btn.innerHTML = GEAR_SVG
-
-              btn.addEventListener("click", (e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                navigateToSettings()
-              })
-
-              actions.insertBefore(btn, actions.firstElementChild)
-            }
-          }
-        }
-      }
-
-      injectGearButton()
-      const observer = new MutationObserver(() => injectGearButton())
-      observer.observe(document.body, { childList: true, subtree: true })
-    }
 
     ctx.add(Slot, {
       at: "session.header",
       render: (input) => <SessionMonitor screen={input.screen} active={() => input.active} />,
     })
-    // TitlebarItems render in the sidebar footer. The monitor belongs beside the
-    // titlebar controls instead, so its pill is moved into the sidebar header and
-    // kept next to the Session Timestamps clock; the footer is its home when the
-    // header (or that clock) is not on screen.
-    function setupHeaderIcon() {
+    // The sidebar header has no plugin slot, so the gateway pill is this plugin's
+    // own button, inserted beside the Session Timestamps clock. Nothing the host
+    // owns is moved: relocating its TitlebarItem made the host rebuild it under
+    // the pointer, and the two fought at the pass rate. The gate wakes only for a
+    // batch that can move the button, at most once per interval.
+    function setupHeaderButton() {
       if (typeof document === "undefined") return
 
-      let frame: number | undefined
+      const HEADER_ANCHOR = '[data-ocst-kind="toggle"], button[aria-controls="vertical-tabs-sidebar"]'
+      const ICON = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2.5 10h1.8M6.8 6.2v7.6M10 3.4v13.2M13.2 7.4v5.2M17.5 9.4v1.2"/></svg>`
+      let button: HTMLButtonElement | undefined
 
-      const place = () => {
-        frame = undefined
+      const ensure = () => {
+        if (button) return button
 
-        const item = Array.from(document.querySelectorAll<HTMLElement>('[data-slot="titlebar-update"]')).find((element) =>
-          element.querySelector("button")?.getAttribute("aria-label")?.includes("Llama-Swap"),
-        )
+        button = document.createElement("button")
+        button.type = "button"
+        button.className = "llama-swap-header-toggle"
+        button.dataset.llamaHeaderToggle = ""
+        button.innerHTML = ICON
+        button.addEventListener("click", (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          openGatewayDashboard()
+        })
 
-        if (!item) return
+        return button
+      }
 
-        const button = item.querySelector("button")
-        const label = button?.getAttribute("aria-label")
-
-        if (button && label && button.title !== label) button.title = label
-
+      /** The header control the button sits before, when the header is on screen. */
+      const header = () => {
         const clock = document.querySelector<HTMLElement>('[data-ocst-kind="toggle"]')
         const toggle = Array.from(
           document.querySelectorAll<HTMLElement>('button[aria-controls="vertical-tabs-sidebar"]'),
         ).find((element) => !element.closest('[data-slot="collapsed-sidebar-toggle"]'))
         const anchor = clock ?? toggle
-        const header = anchor?.parentElement
-        const footer = document.querySelector<HTMLElement>('[data-slot="vertical-tabs-footer"]')
 
-        const move = (parent: HTMLElement, before: HTMLElement) => {
-          if (item.parentElement === parent && item.nextElementSibling === before) return
-          parent.insertBefore(item, before)
-          item.setAttribute("data-llama-header-item", "")
+        return anchor?.parentElement ? { container: anchor.parentElement, before: anchor } : undefined
+      }
+
+      const paint = (element: HTMLButtonElement) => {
+        const status = gatewayStatus()
+        const modelName = status?.modelId?.split("*")[0] ?? "llama-swap"
+        const label =
+          status?.live.state === "generating" && status.live.tokS !== undefined
+            ? `${status.live.tokS.toFixed(1)} ${ctx.t("unit.toks")}`
+            : status?.warning && status.live.tokS === undefined
+              ? `${modelName} · ${ctx.t("widget.waiting")}`
+              : modelName
+        const title = status?.modelId ? `${status.modelId} — ${ctx.t("widget.title")}` : ctx.t("widget.title")
+
+        if (element.getAttribute("aria-label") !== label) element.setAttribute("aria-label", label)
+        if (element.title !== title) element.title = title
+        element.dataset.on = status?.live.state === "generating" ? "true" : "false"
+      }
+
+      /**
+       * True when `element` sits before `other` among the same parent's children.
+       * A sibling walk, not `compareDocumentPosition`: the header is a handful of
+       * children, and the check stays easy to test with a fake DOM.
+       */
+      const elementPrecedes = (element: Element, other: Element) => {
+        if (element === other || element.parentElement !== other.parentElement) return false
+
+        for (let node = element.nextElementSibling; node; node = node.nextElementSibling) {
+          if (node === other) return true
         }
 
-        if (header && anchor) {
-          move(header, anchor)
+        return false
+      }
+
+      const place = () => {
+        const element = ensure()
+
+        if (!settings().alwaysShowCurrentLoad) {
+          element.remove()
 
           return
         }
 
-        if (footer && item.parentElement !== footer) {
-          footer.append(item)
-          item.removeAttribute("data-llama-header-item")
+        paint(element)
+
+        const slot = header()
+
+        if (!slot) {
+          element.remove()
+
+          return
         }
+
+        // "Somewhere before the anchor" rather than "immediately before it": another
+        // plugin may legitimately insert its own control in between, and demanding
+        // the exact sibling made the two re-insert themselves at the pass rate.
+        if (!elementPrecedes(element, slot.before)) slot.container.insertBefore(element, slot.before)
       }
 
-      const schedule = () => {
-        if (frame !== undefined) return
-        frame = requestAnimationFrame(place)
+      // Runs for every batch, so it does no lookup of its own: only a change inside
+      // the header, or to the button itself, can move it.
+      const relevant = (records: readonly MutationRecord[]) => {
+        for (const record of records) {
+          if (record.type !== "childList") continue
+
+          const target = record.target
+
+          if (!(target instanceof Element)) continue
+          if (target === document.body) return true
+          if (target.closest(HEADER_ANCHOR)) return true
+          if (button && (target === button || button.contains(target))) return true
+
+          for (const added of record.addedNodes) {
+            if (added === button) return true
+            if (added instanceof Element && added.querySelector(HEADER_ANCHOR)) return true
+          }
+
+          for (const removed of record.removedNodes) {
+            if (removed === button) return true
+            if (removed instanceof Element && removed.querySelector(HEADER_ANCHOR)) return true
+          }
+        }
+
+        return false
       }
 
-      const observer = new MutationObserver(schedule)
-      observer.observe(document.body, { childList: true, subtree: true })
+      const gate = createMutationGate({ run: place, relevant, interval: 250 })
+
+      // The pill follows the gateway's live state and the setting that hides it,
+      // repainting on its own rather than waiting for a DOM batch.
+      createEffect(() => {
+        gatewayStatus()
+        settings().alwaysShowCurrentLoad
+        gate.schedule()
+      })
+
       place()
 
       onCleanup(() => {
-        observer.disconnect()
-        if (frame !== undefined) cancelAnimationFrame(frame)
+        gate.stop()
+        button?.remove()
       })
     }
 
+    setupHeaderButton()
+
     // Match the Session Timestamps clock beside it: a ghost 28px button with a
-    // 16px muted icon and the same radius and hover wash, not the filled accent
-    // pill the footer uses.
+    // 16px muted icon and the same radius and hover wash.
     ctx.add(Style, `
-      [data-llama-header-item] {
-        align-self: auto !important;
-        border-radius: 6px !important;
-        background: transparent !important;
-        transition: none !important;
-      }
-      [data-llama-header-item] > button {
-        border-radius: 6px !important;
-        background-color: transparent !important;
+      .llama-swap-header-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        flex: none;
+        padding: 0;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
         color: var(--v2-icon-icon-muted, light-dark(#5f5f5f, #8a8a8a));
+        cursor: pointer;
+        app-region: no-drag;
+        -webkit-app-region: no-drag;
         transition: color 120ms ease, background-color 120ms ease;
       }
-      [data-llama-header-item] > button > span svg {
-        width: 16px;
-        height: 16px;
-      }
-      [data-llama-header-item]:hover > button,
-      [data-llama-header-item]:focus-within > button {
-        background-color: var(--v2-overlay-simple-overlay-hover, light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.06))) !important;
+      .llama-swap-header-toggle svg { width: 16px; height: 16px; }
+      .llama-swap-header-toggle:hover,
+      .llama-swap-header-toggle:focus-visible {
+        background: var(--v2-overlay-simple-overlay-hover, light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.06)));
         color: var(--v2-text-text-base, light-dark(#1f1f1f, #eeeeee));
       }
-      [data-llama-header-item] [data-slot="titlebar-update-label"] { display: none !important; }
+      .llama-swap-header-toggle[data-on="true"] { color: var(--v2-text-text-base, light-dark(#1f1f1f, #eeeeee)); }
     `)
-
-    setupHeaderIcon()
-
 
     ctx.add(SettingsPage, () => ({
       id: "llama-swap-stats",
@@ -616,7 +596,6 @@ export default Plugin.define({
       ),
     }))
 
-    setupExtensionSettingsGearInjection("llama-swap-stats", "llama-swap-stats")
   },
   main(ctx) {
     ctx.log.write("info", "llama-swap-stats main ready", {
